@@ -32,8 +32,27 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         ICON "${CMAKE_SOURCE_DIR}/icon.jpg")
 
 target_include_directories(${PROJECT_NAME} PUBLIC include ${DEVKITPRO}/libnx/include ${PORTLIBS}/include ${PORTLIBS}/include/freetype2 ${PORTLIBS}/include/SDL2)
+# Static portlibs pull in further libraries that change between devkitPro releases (freetype now needs
+# harfbuzz, for example), so ask the portlibs pkg-config for their static dependencies instead of only
+# hardcoding them. Missing .pc files are skipped and the hardcoded list below still applies.
+set(PORTLIBS_PKG_CONFIG "${PORTLIBS}/bin/aarch64-none-elf-pkg-config")
+set(PORTLIBS_DEPENDENCIES "")
+if(EXISTS ${PORTLIBS_PKG_CONFIG})
+    foreach(package freetype2 SDL2_mixer libcurl zziplib)
+        execute_process(COMMAND ${PORTLIBS_PKG_CONFIG} --static --libs-only-l ${package}
+                OUTPUT_VARIABLE package_libs OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE package_result ERROR_QUIET)
+        if(package_result EQUAL 0)
+            separate_arguments(package_libs UNIX_COMMAND "${package_libs}")
+            list(APPEND PORTLIBS_DEPENDENCIES ${package_libs})
+        endif()
+    endforeach()
+endif()
+
+# Grouped because some portlibs depend on each other (freetype <-> harfbuzz)
 target_link_libraries(${PROJECT_NAME} -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIC -ftls-model=local-exec -fPIE -L${DEVKITPRO}/libnx/lib -L${PORTLIBS}/lib
+        -Wl,--start-group
         -lglad -lEGL -lglapi -ldrm_nouveau -lcurl -lzzip -lSDL2_mixer -lSDL2 -lvorbisidec -lvorbis -lmodplug -logg -lopusfile -lopus -lmpg123 -lpthread -lfreetype
-        -lz -lbz2 -lpng -lnx -lffi -lstdc++ -lm)
+        -lz -lbz2 -lpng ${PORTLIBS_DEPENDENCIES} -lnx -lffi -lstdc++ -lm
+        -Wl,--end-group)
 
 add_nro_target(${PROJECT_NAME})
