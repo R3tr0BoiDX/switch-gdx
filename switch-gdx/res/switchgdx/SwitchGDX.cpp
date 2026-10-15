@@ -483,6 +483,20 @@ static void remapPadAxes(float *axes, u32 style) {
 }
 #endif
 
+void SM_com_thelogicmaster_switchgdx_SwitchApplication_getStatistics_Array1_long(jcontext ctx, jobject out) {
+    extern int64_t totalAllocations, totalCollections, totalCollectionNanos, totalBytesRead;
+    extern std::atomic_int64_t heapUsage;
+    auto array = (jarray) NULL_CHECK(out);
+    if (array->length < 5)
+        throwIndexOutOfBounds(ctx);
+    auto data = (jlong *) array->data;
+    data[0] = totalAllocations;
+    data[1] = heapUsage;
+    data[2] = totalCollections;
+    data[3] = totalCollectionNanos;
+    data[4] = totalBytesRead;
+}
+
 void SM_com_thelogicmaster_switchgdx_SwitchApplication_startProfiler_java_lang_String_int_int(jcontext ctx, jobject path, jint intervalMicros, jint reportSeconds) {
     startProfiler(ctx, stringToNative(ctx, (jstring) NULL_CHECK(path)), intervalMicros, reportSeconds);
 }

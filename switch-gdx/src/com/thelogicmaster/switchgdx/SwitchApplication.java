@@ -276,6 +276,10 @@ public class SwitchApplication implements Application {
 	 * reportSeconds, until the app exits. Uses Clearwing's sampling profiler, for finding hotspots on the console. */
 	public static native void startProfiler (String path, int intervalMicros, int reportSeconds);
 
+	/** Fills out (length 5) with Clearwing's running totals: allocations, heap bytes, garbage collections, nanoseconds
+	 * spent collecting, bytes read from files. For on-screen statistics, approximate. */
+	public static native void getStatistics (long[] out);
+
 	private static native void init (boolean vsync, boolean exitOnPlus);
 
 	private static native boolean update ();
