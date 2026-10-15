@@ -110,6 +110,7 @@ static EGLContext context;
 static EGLSurface surface;
 
 static PadState combinedPad;
+static bool exitOnPlus = true;
 static PadState pads[8];
 
 static int nxlinkSock = -1;
@@ -192,7 +193,8 @@ void *getBufferAddress(java_nio_DoubleBuffer *buffer) {
 
 extern "C" {
 
-void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean(jcontext ctx, jbool vsync) {
+void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean(jcontext ctx, jbool vsync, jbool exitOnPlusButton) {
+    exitOnPlus = exitOnPlusButton;
     for (int i = 0; i < 16; i++)
         touches[i * 3] = -1;
 
@@ -485,7 +487,7 @@ jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_update_R_boolean(jcontex
 #ifdef __SWITCH__
     padUpdate(&combinedPad);
     u64 kDown = padGetButtonsDown(&combinedPad);
-    if (kDown & HidNpadButton_Plus)
+    if (exitOnPlus && (kDown & HidNpadButton_Plus))
         return false;
 
     for (int i = 0; i < 8; i++)

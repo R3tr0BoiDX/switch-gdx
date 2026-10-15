@@ -44,7 +44,7 @@ public class SwitchApplication implements Application {
 	}
 
 	public SwitchApplication (ApplicationListener listener, Config config) {
-		init(config.vsync);
+		init(config.vsync, config.exitOnPlus);
 
 		this.listener = listener;
 		
@@ -272,7 +272,7 @@ public class SwitchApplication implements Application {
 		lifecycleListeners.removeValue(listener, true);
 	}
 
-	private static native void init (boolean vsync);
+	private static native void init (boolean vsync, boolean exitOnPlus);
 
 	private static native boolean update ();
 
@@ -301,6 +301,9 @@ public class SwitchApplication implements Application {
 		
 		private ApplicationType appType = ApplicationType.Desktop;
 
+		/** Quit when + is pressed on the Switch, for apps that do not use the button themselves */
+		private boolean exitOnPlus = true;
+
 		public Config() {
 		}
 
@@ -327,6 +330,14 @@ public class SwitchApplication implements Application {
 
 		public void setAppType(ApplicationType appType) {
 			this.appType = appType;
+		}
+
+		public boolean getExitOnPlus() {
+			return exitOnPlus;
+		}
+
+		public void setExitOnPlus(boolean exitOnPlus) {
+			this.exitOnPlus = exitOnPlus;
 		}
 	}
 }
