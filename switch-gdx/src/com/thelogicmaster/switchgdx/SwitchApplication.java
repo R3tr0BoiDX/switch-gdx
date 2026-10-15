@@ -272,6 +272,10 @@ public class SwitchApplication implements Application {
 		lifecycleListeners.removeValue(listener, true);
 	}
 
+	/** Samples the calling thread every intervalMicros and appends the most frequent methods to the file at path every
+	 * reportSeconds, until the app exits. Uses Clearwing's sampling profiler, for finding hotspots on the console. */
+	public static native void startProfiler (String path, int intervalMicros, int reportSeconds);
+
 	private static native void init (boolean vsync, boolean exitOnPlus);
 
 	private static native boolean update ();

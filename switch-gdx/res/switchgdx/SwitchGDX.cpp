@@ -483,6 +483,10 @@ static void remapPadAxes(float *axes, u32 style) {
 }
 #endif
 
+void SM_com_thelogicmaster_switchgdx_SwitchApplication_startProfiler_java_lang_String_int_int(jcontext ctx, jobject path, jint intervalMicros, jint reportSeconds) {
+    startProfiler(ctx, stringToNative(ctx, (jstring) NULL_CHECK(path)), intervalMicros, reportSeconds);
+}
+
 jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_update_R_boolean(jcontext ctx) {
 #ifdef __SWITCH__
     padUpdate(&combinedPad);
