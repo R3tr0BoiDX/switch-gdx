@@ -91,7 +91,7 @@ public class SwitchApplication implements Application {
 				audio.update(graphics.getDeltaTime());
 				input.update();
 				controllerManager.update();
-				Timer.instance().update();
+				Timer.updateAll();
 				executeRunnables();
 				listener.render();
 			}

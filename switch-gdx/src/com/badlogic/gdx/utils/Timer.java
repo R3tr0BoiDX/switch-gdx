@@ -22,9 +22,27 @@ import com.badlogic.gdx.Gdx;
  * @author Nathan Sweet */
 public class Timer {
 	private static Timer instance;
+	/** Started timers, updated once per frame by {@link #updateAll()} */
+	private static final Array<Timer> instances = new Array<>(false, 8);
+	private static final Array<Timer> updating = new Array<>(false, 8);
 
 	final Array<Task> tasks = new Array<>(false, 8);
 	boolean stopped;
+
+	public Timer () {
+		start();
+	}
+
+	/** Runs the due tasks of all started timers. Called by the backend once per frame. */
+	public static void updateAll () {
+		// A copy, so tasks and other threads can start and stop timers meanwhile
+		synchronized (instances) {
+			updating.clear();
+			updating.addAll(instances);
+		}
+		for (int i = 0; i < updating.size; i++)
+			updating.get(i).update();
+	}
 
 	static public synchronized Timer instance () {
 		if (instance == null)
@@ -64,11 +82,18 @@ public class Timer {
 	/** Stops the timer, tasks will not be executed and time that passes will not be applied to the task delays. */
 	public synchronized void stop () {
 		stopped = true;
+		synchronized (instances) {
+			instances.removeValue(this, true);
+		}
 	}
 
 	/** Starts the timer if it was stopped. */
 	public synchronized void start () {
 		stopped = false;
+		synchronized (instances) {
+			if (!instances.contains(this, true))
+				instances.add(this);
+		}
 	}
 
 	/** Cancels all tasks. */
@@ -88,7 +113,9 @@ public class Timer {
 	}
 
 	public void update () {
-		long timeMillis = System.currentTimeMillis();
+		if (stopped)
+			return;
+		long timeMillis = System.nanoTime() / 1000000; // Same clock as scheduleTask
 		for (int i = 0, n = tasks.size; i < n; i++) {
 			Task task = tasks.get(i);
 			if (task.executeTimeMillis > timeMillis)
