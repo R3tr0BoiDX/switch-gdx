@@ -103,6 +103,7 @@ static int touches[16 * 3];
 static std::mutex audioCallbackLock;
 static std::vector<int> soundFinishedEvents;
 static bool musicFinishedEvent;
+static bool exitOnPlus = true;
 
 #ifdef __SWITCH__
 static EGLDisplay display;
@@ -110,7 +111,6 @@ static EGLContext context;
 static EGLSurface surface;
 
 static PadState combinedPad;
-static bool exitOnPlus = true;
 static PadState pads[8];
 
 static int nxlinkSock = -1;
