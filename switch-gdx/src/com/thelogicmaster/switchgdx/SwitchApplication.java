@@ -44,7 +44,7 @@ public class SwitchApplication implements Application {
 	}
 
 	public SwitchApplication (ApplicationListener listener, Config config) {
-		init(config.vsync, config.exitOnPlus);
+		init(config.vsync, config.exitOnPlus, config.dockedWidth, config.dockedHeight);
 
 		this.listener = listener;
 		
@@ -280,7 +280,7 @@ public class SwitchApplication implements Application {
 	 * spent collecting, bytes read from files. For on-screen statistics, approximate. */
 	public static native void getStatistics (long[] out);
 
-	private static native void init (boolean vsync, boolean exitOnPlus);
+	private static native void init (boolean vsync, boolean exitOnPlus, int dockedWidth, int dockedHeight);
 
 	private static native boolean update ();
 
@@ -311,6 +311,10 @@ public class SwitchApplication implements Application {
 
 		/** Quit when + is pressed on the Switch, for apps that do not use the button themselves */
 		private boolean exitOnPlus = true;
+
+		/** Framebuffer size on the Switch when the app starts docked (the console scales it to the TV). Handheld is
+		 * always 1280x720, and the size stays when the console is docked or undocked later */
+		private int dockedWidth = 1280, dockedHeight = 720;
 
 		public Config() {
 		}
@@ -346,6 +350,11 @@ public class SwitchApplication implements Application {
 
 		public void setExitOnPlus(boolean exitOnPlus) {
 			this.exitOnPlus = exitOnPlus;
+		}
+
+		public void setDockedSize(int width, int height) {
+			dockedWidth = width;
+			dockedHeight = height;
 		}
 	}
 }

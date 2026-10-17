@@ -100,6 +100,7 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 #endif
 
 static int touches[16 * 3];
+static int screenWidth = 1280, screenHeight = 720;
 static std::mutex audioCallbackLock;
 static std::vector<int> soundFinishedEvents;
 static bool musicFinishedEvent;
@@ -193,7 +194,7 @@ void *getBufferAddress(java_nio_DoubleBuffer *buffer) {
 
 extern "C" {
 
-void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean(jcontext ctx, jbool vsync, jbool exitOnPlusButton) {
+void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_int(jcontext ctx, jbool vsync, jbool exitOnPlusButton, jint dockedWidth, jint dockedHeight) {
     exitOnPlus = exitOnPlusButton;
     for (int i = 0; i < 16; i++)
         touches[i * 3] = -1;
@@ -235,6 +236,12 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean(jcon
         EGL_NONE
     };
     eglChooseConfig(display, framebufferAttributeList, &config, 1, &numConfigs);
+    // Buffers can't be resized once registered, so the size is chosen once at startup
+    if (appletGetOperationMode() == AppletOperationMode_Console) {
+        screenWidth = dockedWidth;
+        screenHeight = dockedHeight;
+    }
+    nwindowSetDimensions(nwindowGetDefault(), screenWidth, screenHeight);
     surface = eglCreateWindowSurface(display, config, nwindowGetDefault(), NULL);
     static const EGLint contextAttributeList[] =
     {
@@ -516,8 +523,8 @@ jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_update_R_boolean(jcontex
         for (int i = 0; i < 16; i++)
             if (i < touchState.count) {
                 touches[i * 3 + 0] = touchState.touches[i].finger_id;
-                touches[i * 3 + 1] = touchState.touches[i].x;
-                touches[i * 3 + 2] = touchState.touches[i].y;
+                touches[i * 3 + 1] = touchState.touches[i].x * screenWidth / 1280;
+                touches[i * 3 + 2] = touchState.touches[i].y * screenHeight / 720;
             } else {
                 touches[i * 3 + 0] = -1;
                 touches[i * 3 + 1] = 0;
@@ -1411,8 +1418,7 @@ jobject SM_com_badlogic_gdx_graphics_glutils_ETC1_encodeImagePKM_java_nio_ByteBu
 jint M_com_thelogicmaster_switchgdx_SwitchGraphics_getWidth_R_int(jcontext ctx, jobject self) {
     int width;
 #ifdef __SWITCH__
-//    eglQuerySurface(display, surface, EGL_WIDTH, &width);
-    return 1280;
+    return screenWidth;
 #else
     SDL_GetWindowSize(window, &width, nullptr);
 #endif
@@ -1422,8 +1428,7 @@ jint M_com_thelogicmaster_switchgdx_SwitchGraphics_getWidth_R_int(jcontext ctx, 
 jint M_com_thelogicmaster_switchgdx_SwitchGraphics_getHeight_R_int(jcontext ctx, jobject self) {
     int height;
 #ifdef __SWITCH__
-//    eglQuerySurface(display, surface, EGL_HEIGHT, &height);
-    return 720;
+    return screenHeight;
 #else
     SDL_GetWindowSize(window, nullptr, &height);
 #endif
