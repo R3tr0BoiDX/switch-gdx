@@ -1,5 +1,6 @@
 package com.thelogicmaster.switchgdx;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.IntMap;
@@ -65,8 +66,17 @@ public class SwitchSound implements Sound {
 		listeners.remove(listener);
 	}
 	
+	private static int failedPlays;
+
 	private long play(float volume, float pitch, float pan, boolean looping) {
 		int channel = play0(looping);
+		// -1 means no free channel (or no chunk). Used as a channel below, it would set the volume of every channel.
+		if (channel < 0) {
+			if (failedPlays++ % 100 == 0)
+				Gdx.app.log("SwitchSound", "No channel for a sound (" + (handle == 0 ? "disposed" : "all busy") + "), "
+					+ failedPlays + " so far");
+			return -1;
+		}
 		setVolume0(channel, volume);
 		setPitch0(channel, pitch);
 		setPan0(channel, pan);
