@@ -101,6 +101,8 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
 static int touches[16 * 3];
 static int screenWidth = 1280, screenHeight = 720;
+static int dockedScreenWidth = 1280, dockedScreenHeight = 720;
+static int screenMode = -1;
 static std::mutex audioCallbackLock;
 static std::vector<int> soundFinishedEvents;
 static bool musicFinishedEvent;
@@ -110,6 +112,7 @@ static bool exitOnPlus = true;
 static EGLDisplay display;
 static EGLContext context;
 static EGLSurface surface;
+static EGLConfig eglConfig;
 
 static PadState combinedPad;
 static PadState pads[8];
@@ -192,6 +195,32 @@ void *getBufferAddress(java_nio_DoubleBuffer *buffer) {
     return (char*)buffer->parent.F_address + sizeof(jdouble) * buffer->parent.F_position;
 }
 
+#ifdef __SWITCH__
+// Sizes the window for the current operation mode. NWindow buffers can't be resized while registered, so the
+// surface is recreated; the context and its objects stay. Java sees the new size and calls resize.
+static void updateScreenSize() {
+    int mode = appletGetOperationMode();
+    if (mode == screenMode)
+        return;
+    screenMode = mode;
+    bool docked = mode == AppletOperationMode_Console;
+    int width = docked ? dockedScreenWidth : 1280, height = docked ? dockedScreenHeight : 720;
+    if (surface && width == screenWidth && height == screenHeight)
+        return;
+    if (surface) {
+        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        eglDestroySurface(display, surface);
+    }
+    if (R_SUCCEEDED(nwindowSetDimensions(nwindowGetDefault(), width, height))) {
+        screenWidth = width;
+        screenHeight = height;
+    }
+    surface = eglCreateWindowSurface(display, eglConfig, nwindowGetDefault(), NULL);
+    if (context)
+        eglMakeCurrent(display, surface, surface, context);
+}
+#endif
+
 extern "C" {
 
 void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_int(jcontext ctx, jbool vsync, jbool exitOnPlusButton, jint dockedWidth, jint dockedHeight) {
@@ -223,7 +252,6 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     eglInitialize(display, NULL, NULL);
     eglBindAPI(EGL_OPENGL_API);
-    EGLConfig config;
     EGLint numConfigs;
     static const EGLint framebufferAttributeList[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
@@ -235,14 +263,10 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
         EGL_STENCIL_SIZE, 8,
         EGL_NONE
     };
-    eglChooseConfig(display, framebufferAttributeList, &config, 1, &numConfigs);
-    // Buffers can't be resized once registered, so the size is chosen once at startup
-    if (appletGetOperationMode() == AppletOperationMode_Console) {
-        screenWidth = dockedWidth;
-        screenHeight = dockedHeight;
-    }
-    nwindowSetDimensions(nwindowGetDefault(), screenWidth, screenHeight);
-    surface = eglCreateWindowSurface(display, config, nwindowGetDefault(), NULL);
+    eglChooseConfig(display, framebufferAttributeList, &eglConfig, 1, &numConfigs);
+    dockedScreenWidth = dockedWidth;
+    dockedScreenHeight = dockedHeight;
+    updateScreenSize();
     static const EGLint contextAttributeList[] =
     {
         EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
@@ -250,7 +274,7 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
         EGL_CONTEXT_MINOR_VERSION_KHR, 0,
         EGL_NONE
     };
-    context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttributeList);
+    context = eglCreateContext(display, eglConfig, EGL_NO_CONTEXT, contextAttributeList);
     eglMakeCurrent(display, surface, surface, context);
     gladLoadGL();
 
@@ -533,7 +557,10 @@ jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_update_R_boolean(jcontex
     }
 
     eglSwapBuffers(display, surface);
-    return appletMainLoop();
+    if (!appletMainLoop())
+        return false;
+    updateScreenSize();
+    return true;
 #else
     SDL_Event event;
     int axis;
