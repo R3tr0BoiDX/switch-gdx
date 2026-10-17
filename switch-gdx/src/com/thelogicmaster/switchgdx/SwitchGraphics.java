@@ -31,12 +31,12 @@ public class SwitchGraphics extends AbstractGraphics {
 
 		bufferFormat = new BufferFormat(8, 8, 8, 8, 24, 8, 0, false);
 
-		previousTime = System.currentTimeMillis();
+		previousTime = System.nanoTime();
 	}
 
 	void update() {
-		long timestamp = System.currentTimeMillis();
-		deltaTime = (Math.max(timestamp - previousTime, 1)) / 1000.f;
+		long timestamp = System.nanoTime();
+		deltaTime = (Math.max(timestamp - previousTime, 1000000)) / 1000000000.f;
 		previousTime = timestamp;
 		time += deltaTime;
 		frameId++;
