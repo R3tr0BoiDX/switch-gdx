@@ -44,7 +44,8 @@ public class SwitchApplication implements Application {
 	}
 
 	public SwitchApplication (ApplicationListener listener, Config config) {
-		init(config.vsync, config.exitOnPlus, config.dockedWidth, config.dockedHeight);
+		init(config.vsync, config.exitOnPlus, config.dockedWidth, config.dockedHeight, config.handheldSwapInterval,
+			config.dockedSwapInterval);
 
 		this.listener = listener;
 		
@@ -280,7 +281,8 @@ public class SwitchApplication implements Application {
 	 * spent collecting, bytes read from files. For on-screen statistics, approximate. */
 	public static native void getStatistics (long[] out);
 
-	private static native void init (boolean vsync, boolean exitOnPlus, int dockedWidth, int dockedHeight);
+	private static native void init (boolean vsync, boolean exitOnPlus, int dockedWidth, int dockedHeight,
+		int handheldSwapInterval, int dockedSwapInterval);
 
 	private static native boolean update ();
 
@@ -315,6 +317,9 @@ public class SwitchApplication implements Application {
 		/** Framebuffer size on the Switch while docked (the console scales it to the TV), handheld is always 1280x720.
 		 * Docking or undocking resizes it and calls resize */
 		private int dockedWidth = 1280, dockedHeight = 720;
+
+		/** Displayed frames per rendered frame on the Switch: 1 is up to 60 fps, 2 a steady 30 fps */
+		private int handheldSwapInterval = 1, dockedSwapInterval = 1;
 
 		public Config() {
 		}
@@ -355,6 +360,11 @@ public class SwitchApplication implements Application {
 		public void setDockedSize(int width, int height) {
 			dockedWidth = width;
 			dockedHeight = height;
+		}
+
+		public void setSwapIntervals(int handheld, int docked) {
+			handheldSwapInterval = handheld;
+			dockedSwapInterval = docked;
 		}
 	}
 }

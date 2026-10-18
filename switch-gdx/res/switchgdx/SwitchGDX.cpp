@@ -103,6 +103,7 @@ static int touches[16 * 3];
 static int screenWidth = 1280, screenHeight = 720;
 static int dockedScreenWidth = 1280, dockedScreenHeight = 720;
 static int screenMode = -1;
+static int handheldSwapInterval = 1, dockedSwapInterval = 1;
 static std::mutex audioCallbackLock;
 static std::vector<int> soundFinishedEvents;
 static bool musicFinishedEvent;
@@ -196,34 +197,36 @@ void *getBufferAddress(java_nio_DoubleBuffer *buffer) {
 }
 
 #ifdef __SWITCH__
-// Sizes the window for the current operation mode. NWindow buffers can't be resized while registered, so the
-// surface is recreated; the context and its objects stay. Java sees the new size and calls resize.
-static void updateScreenSize() {
+// Sizes the window and sets the frame rate for the current operation mode. NWindow buffers can't be resized while
+// registered, so the surface is recreated; the context and its objects stay. Java sees the new size and calls resize.
+static void updateDisplayMode() {
     int mode = appletGetOperationMode();
     if (mode == screenMode)
         return;
     screenMode = mode;
     bool docked = mode == AppletOperationMode_Console;
     int width = docked ? dockedScreenWidth : 1280, height = docked ? dockedScreenHeight : 720;
-    if (surface && width == screenWidth && height == screenHeight)
-        return;
-    if (surface) {
-        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        eglDestroySurface(display, surface);
+    if (!surface || width != screenWidth || height != screenHeight) {
+        if (surface) {
+            eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            eglDestroySurface(display, surface);
+        }
+        if (R_SUCCEEDED(nwindowSetDimensions(nwindowGetDefault(), width, height))) {
+            screenWidth = width;
+            screenHeight = height;
+        }
+        surface = eglCreateWindowSurface(display, eglConfig, nwindowGetDefault(), NULL);
+        if (context)
+            eglMakeCurrent(display, surface, surface, context);
     }
-    if (R_SUCCEEDED(nwindowSetDimensions(nwindowGetDefault(), width, height))) {
-        screenWidth = width;
-        screenHeight = height;
-    }
-    surface = eglCreateWindowSurface(display, eglConfig, nwindowGetDefault(), NULL);
     if (context)
-        eglMakeCurrent(display, surface, surface, context);
+        eglSwapInterval(display, docked ? dockedSwapInterval : handheldSwapInterval);
 }
 #endif
 
 extern "C" {
 
-void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_int(jcontext ctx, jbool vsync, jbool exitOnPlusButton, jint dockedWidth, jint dockedHeight) {
+void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_int_int_int(jcontext ctx, jbool vsync, jbool exitOnPlusButton, jint dockedWidth, jint dockedHeight, jint handheldInterval, jint dockedInterval) {
     exitOnPlus = exitOnPlusButton;
     for (int i = 0; i < 16; i++)
         touches[i * 3] = -1;
@@ -266,7 +269,9 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     eglChooseConfig(display, framebufferAttributeList, &eglConfig, 1, &numConfigs);
     dockedScreenWidth = dockedWidth;
     dockedScreenHeight = dockedHeight;
-    updateScreenSize();
+    handheldSwapInterval = handheldInterval;
+    dockedSwapInterval = dockedInterval;
+    updateDisplayMode();
     static const EGLint contextAttributeList[] =
     {
         EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
@@ -276,6 +281,7 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     };
     context = eglCreateContext(display, eglConfig, EGL_NO_CONTEXT, contextAttributeList);
     eglMakeCurrent(display, surface, surface, context);
+    eglSwapInterval(display, screenMode == AppletOperationMode_Console ? dockedSwapInterval : handheldSwapInterval);
     gladLoadGL();
 
     SDL_Init(SDL_INIT_AUDIO);
@@ -559,7 +565,7 @@ jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_update_R_boolean(jcontex
     eglSwapBuffers(display, surface);
     if (!appletMainLoop())
         return false;
-    updateScreenSize();
+    updateDisplayMode();
     return true;
 #else
     SDL_Event event;
