@@ -314,8 +314,8 @@ public class SwitchApplication implements Application {
 		/** Quit when + is pressed on the Switch, for apps that do not use the button themselves */
 		private boolean exitOnPlus = true;
 
-		/** Framebuffer size on the Switch while docked (the console scales it to the TV), handheld is always 1280x720.
-		 * Docking or undocking resizes it and calls resize */
+		/** Render size on the Switch while docked (the console scales it to the TV), handheld is always 1280x720.
+		 * Docking or undocking calls resize */
 		private int dockedWidth = 1280, dockedHeight = 720;
 
 		/** Displayed frames per rendered frame on the Switch: 1 is up to 60 fps, 2 a steady 30 fps */

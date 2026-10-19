@@ -197,28 +197,24 @@ void *getBufferAddress(java_nio_DoubleBuffer *buffer) {
 }
 
 #ifdef __SWITCH__
-// Sizes the window and sets the frame rate for the current operation mode. NWindow buffers can't be resized while
-// registered, so the surface is recreated; the context and its objects stay. Java sees the new size and calls resize.
+// Sizes the window and sets the frame rate for the current operation mode. The buffers are allocated once at the larger
+// size: NWindow buffers can't be resized while registered, and a recreated surface presented at half the frame rate.
+// A smaller mode draws into the bottom left corner, which GL keeps at the bottom of the buffer, and the crop presents
+// only that part, scaled to the screen. Java sees the new size and calls resize.
 static void updateDisplayMode() {
     int mode = appletGetOperationMode();
     if (mode == screenMode)
         return;
     screenMode = mode;
     bool docked = mode == AppletOperationMode_Console;
-    int width = docked ? dockedScreenWidth : 1280, height = docked ? dockedScreenHeight : 720;
-    if (!surface || width != screenWidth || height != screenHeight) {
-        if (surface) {
-            eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-            eglDestroySurface(display, surface);
-        }
-        if (R_SUCCEEDED(nwindowSetDimensions(nwindowGetDefault(), width, height))) {
-            screenWidth = width;
-            screenHeight = height;
-        }
-        surface = eglCreateWindowSurface(display, eglConfig, nwindowGetDefault(), NULL);
-        if (context)
-            eglMakeCurrent(display, surface, surface, context);
-    }
+    screenWidth = docked ? dockedScreenWidth : 1280;
+    screenHeight = docked ? dockedScreenHeight : 720;
+    u32 bufferWidth, bufferHeight;
+    nwindowGetDimensions(nwindowGetDefault(), &bufferWidth, &bufferHeight);
+    if ((u32)screenWidth == bufferWidth && (u32)screenHeight == bufferHeight)
+        nwindowSetCrop(nwindowGetDefault(), 0, 0, 0, 0);
+    else
+        nwindowSetCrop(nwindowGetDefault(), 0, bufferHeight - screenHeight, screenWidth, bufferHeight);
     if (context)
         eglSwapInterval(display, docked ? dockedSwapInterval : handheldSwapInterval);
 }
@@ -271,6 +267,9 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     dockedScreenHeight = dockedHeight;
     handheldSwapInterval = handheldInterval;
     dockedSwapInterval = dockedInterval;
+    nwindowSetDimensions(nwindowGetDefault(), dockedWidth > 1280 ? dockedWidth : 1280,
+                         dockedHeight > 720 ? dockedHeight : 720);
+    surface = eglCreateWindowSurface(display, eglConfig, nwindowGetDefault(), NULL);
     updateDisplayMode();
     static const EGLint contextAttributeList[] =
     {
