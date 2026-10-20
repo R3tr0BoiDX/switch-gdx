@@ -88,6 +88,16 @@ public class SwitchApplication implements Application {
 					listener.resize(width, height);
 				}
 
+				// Back from the HOME menu or sleep (suspended meanwhile): pause and resume like other backends
+				if (takeFocusLost()) {
+					for (LifecycleListener lifecycleListener : new Array.ArrayIterable<>(lifecycleListeners)) {
+						lifecycleListener.pause();
+						lifecycleListener.resume();
+					}
+					listener.pause();
+					listener.resume();
+				}
+
 				graphics.update();
 				audio.update(graphics.getDeltaTime());
 				input.update();
@@ -285,6 +295,9 @@ public class SwitchApplication implements Application {
 		int handheldSwapInterval, int dockedSwapInterval);
 
 	private static native boolean update ();
+
+	/** Whether the app lost focus since the last call */
+	private static native boolean takeFocusLost ();
 
 	private static native void dispose ();
 
