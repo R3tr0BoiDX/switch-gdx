@@ -57,7 +57,7 @@ public class SwitchApplication implements Application {
 			applicationLogger = new SwitchLogger();
 			graphics = new SwitchGraphics();
 			files = new SwitchFiles();
-			input = new SwitchInput();
+			input = new SwitchInput(config.touchscreen);
 			net = new SwitchNet();
 			audio = new SwitchAudio();
 
@@ -334,6 +334,9 @@ public class SwitchApplication implements Application {
 		/** Displayed frames per rendered frame on the Switch: 1 is up to 60 fps, 2 a steady 30 fps */
 		private int handheldSwapInterval = 1, dockedSwapInterval = 1;
 
+		/** Report touches (the Switch's touchscreen, the mouse on the desktop) */
+		private boolean touchscreen = true;
+
 		public Config() {
 		}
 
@@ -373,6 +376,10 @@ public class SwitchApplication implements Application {
 		public void setDockedSize(int width, int height) {
 			dockedWidth = width;
 			dockedHeight = height;
+		}
+
+		public void setTouchscreen(boolean touchscreen) {
+			this.touchscreen = touchscreen;
 		}
 
 		public void setSwapIntervals(int handheld, int docked) {

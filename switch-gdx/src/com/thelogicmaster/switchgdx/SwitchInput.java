@@ -29,8 +29,10 @@ public class SwitchInput implements Input {
 	private final int[] deltaY = new int[MAX_TOUCHES];
 	private final boolean[] touched = new boolean[MAX_TOUCHES];
 	private boolean wasJustTouched;
+	private final boolean touchscreen;
 
-	public SwitchInput () {
+	public SwitchInput (boolean touchscreen) {
+		this.touchscreen = touchscreen;
 		for (int i = 0; i < MAX_TOUCHES; i++) {
 			previousTouchData[i * 3] = -1;
 			rawTouchIds[i] = -1;
@@ -40,7 +42,11 @@ public class SwitchInput implements Input {
 	void update() {
 		currentEventTimeStamp = System.nanoTime();
 		wasJustTouched = false;
-		getTouchData(touchData);
+		if (touchscreen)
+			getTouchData(touchData);
+		else
+			for (int i = 0; i < MAX_TOUCHES; i++)
+				touchData[i * 3] = -1;
 
 		// Todo: There's probably a better way to optimize this
 
