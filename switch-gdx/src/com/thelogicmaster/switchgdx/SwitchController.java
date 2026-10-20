@@ -1,5 +1,6 @@
 package com.thelogicmaster.switchgdx;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.controllers.Controller;
 import com.badlogic.gdx.controllers.ControllerListener;
 import com.badlogic.gdx.controllers.ControllerMapping;
@@ -106,14 +107,18 @@ public class SwitchController implements Controller {
 
 	/** Rumble with a strength (0-1) per side, e.g. for hits from the left. A single Joy-Con takes the stronger one */
 	public void startVibration (int duration, float left, float right) {
-		SwitchControllerManager.vibrate(id, Math.max(0, Math.min(1, left)), Math.max(0, Math.min(1, right)));
+		int result = SwitchControllerManager.vibrate(id, Math.max(0, Math.min(1, left)), Math.max(0, Math.min(1, right)));
+		if (result != 0)
+			Gdx.app.error("SwitchController", "Rumble failed: 0x" + Integer.toHexString(result));
 		vibrationEnd = System.currentTimeMillis() + duration;
 		vibrating = true;
 	}
 
 	@Override
 	public void cancelVibration () {
-		SwitchControllerManager.vibrate(id, 0, 0);
+		int result = SwitchControllerManager.vibrate(id, 0, 0);
+		if (result != 0)
+			Gdx.app.error("SwitchController", "Stopping the rumble failed: 0x" + Integer.toHexString(result));
 		vibrating = false;
 	}
 

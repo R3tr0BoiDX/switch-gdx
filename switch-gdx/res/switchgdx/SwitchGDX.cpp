@@ -1499,8 +1499,9 @@ void SM_com_thelogicmaster_switchgdx_SwitchControllerManager_getAxes_int_Array1_
 }
 
 #ifdef __SWITCH__
-// HD rumble on the left and right motor of a controller (a single Joy-Con takes the stronger one), 0 stops it
-static void vibrateNpad(HidNpadIdType id, float left, float right) {
+// HD rumble on the left and right motor of a controller (a single Joy-Con takes the stronger one), 0 stops it.
+// Returns the failure, 0 when it worked or no controller is there
+static Result vibrateNpad(HidNpadIdType id, float left, float right) {
     u32 styles = hidGetNpadStyleSet(id);
     HidNpadStyleTag style;
     int count = 2;
@@ -1517,29 +1518,34 @@ static void vibrateNpad(HidNpadIdType id, float left, float right) {
         style = HidNpadStyleTag_NpadJoyRight;
         count = 1;
     } else
-        return;
+        return 0;
     HidVibrationDeviceHandle handles[2];
-    if (R_FAILED(hidInitializeVibrationDevices(handles, count, id, style)))
-        return;
+    Result rc = hidInitializeVibrationDevices(handles, count, id, style);
+    if (R_FAILED(rc))
+        return rc;
     HidVibrationValue values[2];
     float amplitudes[2] = {left, right};
     if (count == 1)
         amplitudes[0] = left > right ? left : right;
     for (int i = 0; i < count; i++)
         values[i] = {amplitudes[i], 160.0f, amplitudes[i], 320.0f};
-    hidSendVibrationValues(handles, values, count);
+    return hidSendVibrationValues(handles, values, count);
 }
 #endif
 
-void SM_com_thelogicmaster_switchgdx_SwitchControllerManager_vibrate_int_float_float(jcontext ctx, jint controller, jfloat left, jfloat right) {
+jint SM_com_thelogicmaster_switchgdx_SwitchControllerManager_vibrate_int_float_float_R_int(jcontext ctx, jint controller, jfloat left, jfloat right) {
+    jint failed = 0;
 #ifdef __SWITCH__
     // pads[0] reads handheld and player 1, the combined controller (-1) every pad
     if (controller <= 0)
-        vibrateNpad(HidNpadIdType_Handheld, left, right);
+        if (Result rc = vibrateNpad(HidNpadIdType_Handheld, left, right))
+            failed = (jint) rc;
     for (int i = 0; i < 8; i++)
         if (controller == -1 or controller == i)
-            vibrateNpad(static_cast<HidNpadIdType>(HidNpadIdType_No1 + i), left, right);
+            if (Result rc = vibrateNpad(static_cast<HidNpadIdType>(HidNpadIdType_No1 + i), left, right))
+                failed = (jint) rc;
 #endif
+    return failed;
 }
 
 jbool SM_com_thelogicmaster_switchgdx_SwitchControllerManager_isConnected_int_R_boolean(jcontext ctx, jint controller) {

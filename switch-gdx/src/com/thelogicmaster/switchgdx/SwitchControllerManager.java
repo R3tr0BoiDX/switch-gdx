@@ -126,8 +126,9 @@ public class SwitchControllerManager implements ControllerManager {
 
 	private static native boolean isConnected(int controller);
 
-	/** HD rumble on the controller's left and right motors (-1: all controllers), 0 stops it */
-	static native void vibrate(int controller, float left, float right);
+	/** HD rumble on the controller's left and right motors (-1: all controllers), 0 stops it. Returns the failed
+	 * Result, 0 if it worked */
+	static native int vibrate(int controller, float left, float right);
 
 	private static native void remapControllers(int min, int max, boolean enableDualJoy, boolean enableSingle);
 }
