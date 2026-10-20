@@ -108,7 +108,6 @@ static std::mutex audioCallbackLock;
 static std::vector<int> soundFinishedEvents;
 static bool musicFinishedEvent;
 static bool exitOnPlus = true;
-static bool focusLost;
 
 #ifdef __SWITCH__
 static EGLDisplay display;
@@ -128,15 +127,6 @@ static float joysticks[4];
 #endif
 
 #ifdef __SWITCH__
-static AppletHookCookie focusHookCookie;
-
-// HOME menu, sleep or a library applet: the app is told to pause once it runs again. The HOME menu suspends the app
-// before it handles the message, so the focus state reads InFocus again by then; every change counts
-static void onFocusState(AppletHookType hook, void *param) {
-    if (hook == AppletHookType_OnFocusState)
-        focusLost = true;
-}
-
 extern "C" void userAppInit() {
     socketInitializeDefault();
     nxlinkStdio();
@@ -254,10 +244,6 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     setInitialize();
 
     hidInitializeTouchScreen();
-
-    // Suspended in the HOME menu and asleep as before, but the focus hook still runs
-    appletSetFocusHandlingMode(AppletFocusHandlingMode_SuspendHomeSleepNotify);
-    appletHook(&focusHookCookie, onFocusState, nullptr);
 
     Result result = romfsInit();
     if (R_FAILED(result))
@@ -554,12 +540,6 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_startProfiler_java_lang_S
     startProfiler(ctx, stringToNative(ctx, (jstring) NULL_CHECK(path)), intervalMicros, reportSeconds);
 }
 
-jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_takeFocusLost_R_boolean(jcontext ctx) {
-    bool lost = focusLost;
-    focusLost = false;
-    return lost;
-}
-
 jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_update_R_boolean(jcontext ctx) {
 #ifdef __SWITCH__
     padUpdate(&combinedPad);
@@ -596,10 +576,6 @@ jbool SM_com_thelogicmaster_switchgdx_SwitchApplication_update_R_boolean(jcontex
         switch (event.type) {
             case SDL_QUIT:
                 return false;
-            case SDL_WINDOWEVENT:
-                if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
-                    focusLost = true;
-                break;
             case SDL_MOUSEMOTION:
                 touches[1] = event.motion.x;
                 touches[2] = event.motion.y;
