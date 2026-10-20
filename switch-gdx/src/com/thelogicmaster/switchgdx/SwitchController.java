@@ -101,14 +101,19 @@ public class SwitchController implements Controller {
 
 	@Override
 	public void startVibration (int duration, float strength) {
-		SwitchControllerManager.vibrate(id, Math.max(0, Math.min(1, strength)));
+		startVibration(duration, strength, strength);
+	}
+
+	/** Rumble with a strength (0-1) per side, e.g. for hits from the left. A single Joy-Con takes the stronger one */
+	public void startVibration (int duration, float left, float right) {
+		SwitchControllerManager.vibrate(id, Math.max(0, Math.min(1, left)), Math.max(0, Math.min(1, right)));
 		vibrationEnd = System.currentTimeMillis() + duration;
 		vibrating = true;
 	}
 
 	@Override
 	public void cancelVibration () {
-		SwitchControllerManager.vibrate(id, 0);
+		SwitchControllerManager.vibrate(id, 0, 0);
 		vibrating = false;
 	}
 
