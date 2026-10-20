@@ -75,16 +75,15 @@ public class SwitchMusic implements Music {
 
 	@Override
 	public void setLooping (boolean isLooping) {
+		looping = isLooping;
+		// SDL_mixer takes looping when starting: start again where it was. Without halting first, which would
+		// report the music as finished; it stays playing (isPlaying was false after this, so play() restarted it)
 		if (playing) {
-			float pos = position;
-			stop();
-			setPosition0(pos);
 			start(isLooping);
-			position = pos;
+			setPosition0(position);
 			if (paused)
 				pause0();
 		}
-		looping = isLooping;
 	}
 
 	@Override
