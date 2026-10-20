@@ -69,7 +69,7 @@ public class SwitchSound implements Sound {
 	private static int failedPlays;
 
 	private long play(float volume, float pitch, float pan, boolean looping) {
-		int channel = play0(looping);
+		int channel = play0(looping, volume, pan);
 		// -1 means no free channel (or no chunk). Used as a channel below, it would set the volume of every channel.
 		if (channel < 0) {
 			if (failedPlays++ % 100 == 0)
@@ -77,9 +77,7 @@ public class SwitchSound implements Sound {
 					+ failedPlays + " so far");
 			return -1;
 		}
-		setVolume0(channel, volume);
 		setPitch0(channel, pitch);
-		setPan0(channel, pan);
 		SoundInstance instance = soundPool.obtain();
 		instanceMap.put(id, instance);
 		instance.channel = channel;
@@ -207,7 +205,8 @@ public class SwitchSound implements Sound {
 
 	private native void dispose0();
 
-	private native int play0(boolean looping);
+	/** Starts the sound on a free channel with this volume and pan, returns the channel or -1 */
+	private native int play0(boolean looping, float volume, float pan);
 
 	private native void setLooping0(int channel, boolean looping);
 

@@ -1112,8 +1112,27 @@ void M_com_thelogicmaster_switchgdx_SwitchSound_dispose0(jcontext ctx, jobject s
     handle = 0;
 }
 
-jint M_com_thelogicmaster_switchgdx_SwitchSound_play0_boolean_R_int(jcontext ctx, jobject self, jbool looping) {
-    return Mix_PlayChannel(-1, (Mix_Chunk*)((com_thelogicmaster_switchgdx_SwitchSound *) self)->F_handle, looping ? -1 : 0);
+static void setChannelPan(int channel, float pan) {
+    uint8_t left, right;
+    if (pan <= 0) {
+        left = 255;
+        right = (uint8_t)((1 + pan) * 255);
+    } else {
+        left = (uint8_t)((1 - pan) * 255);
+        right = 255;
+    }
+    Mix_SetPanning(channel, left, right);
+}
+
+// Volume and panning go on the free channel before the sound starts: set afterwards, the mixer thread could already
+// play its start at the volume of the channel's previous sound (quiet footsteps starting at full volume)
+jint M_com_thelogicmaster_switchgdx_SwitchSound_play0_boolean_float_float_R_int(jcontext ctx, jobject self, jbool looping, jfloat volume, jfloat pan) {
+    int channel = Mix_GroupAvailable(-1);
+    if (channel < 0)
+        return -1;
+    Mix_Volume(channel, (int)(volume * MIX_MAX_VOLUME));
+    setChannelPan(channel, pan);
+    return Mix_PlayChannel(channel, (Mix_Chunk*)((com_thelogicmaster_switchgdx_SwitchSound *) self)->F_handle, looping ? -1 : 0);
 }
 
 void M_com_thelogicmaster_switchgdx_SwitchSound_setLooping0_int_boolean(jcontext ctx, jobject self, jint channel, jbool looping) {
@@ -1141,15 +1160,7 @@ void SM_com_thelogicmaster_switchgdx_SwitchSound_setVolume0_int_float(jcontext c
 }
 
 void SM_com_thelogicmaster_switchgdx_SwitchSound_setPan0_int_float(jcontext ctx, jint channel, jfloat pan) {
-    uint8_t left, right;
-    if (pan <= 0) {
-        left = 255;
-        right = (uint8_t)((1 + pan) * 255);
-    } else {
-        left = (uint8_t)((1 - pan) * 255);
-        right = 255;
-    }
-    Mix_SetPanning(channel, left, right);
+    setChannelPan(channel, pan);
 }
 
 jlong SM_com_thelogicmaster_switchgdx_SwitchAudioDevice_create_int_boolean_R_long(jcontext ctx, jint param0, jbool param1) {
