@@ -130,9 +130,10 @@ static float joysticks[4];
 #ifdef __SWITCH__
 static AppletHookCookie focusHookCookie;
 
-// HOME menu, sleep or a library applet: the app is told to pause once it runs again
+// HOME menu, sleep or a library applet: the app is told to pause once it runs again. The HOME menu suspends the app
+// before it handles the message, so the focus state reads InFocus again by then; every change counts
 static void onFocusState(AppletHookType hook, void *param) {
-    if (hook == AppletHookType_OnFocusState && appletGetFocusState() != AppletFocusState_InFocus)
+    if (hook == AppletHookType_OnFocusState)
         focusLost = true;
 }
 
