@@ -21,6 +21,7 @@ public class SwitchInput implements Input {
 	private InputProcessor inputProcessor;
 	private long currentEventTimeStamp;
 	private final int[] touchData = new int[MAX_TOUCHES * 3];
+	private final float[] motion = new float[6];
 	private final int[] previousTouchData = new int[MAX_TOUCHES * 3];
 	private final int[] rawTouchIds = new int[MAX_TOUCHES];
 	private final int[] touchX = new int[MAX_TOUCHES];
@@ -41,6 +42,7 @@ public class SwitchInput implements Input {
 
 	void update() {
 		currentEventTimeStamp = System.nanoTime();
+		getMotion(motion);
 		wasJustTouched = false;
 		if (touchscreen)
 			getTouchData(touchData);
@@ -126,32 +128,32 @@ public class SwitchInput implements Input {
 
 	@Override
 	public float getAccelerometerX () {
-		return 0;
+		return motion[3];
 	}
 
 	@Override
 	public float getAccelerometerY () {
-		return 0;
+		return motion[4];
 	}
 
 	@Override
 	public float getAccelerometerZ () {
-		return 0;
+		return motion[5];
 	}
 
 	@Override
 	public float getGyroscopeX () {
-		return 0;
+		return motion[0];
 	}
 
 	@Override
 	public float getGyroscopeY () {
-		return 0;
+		return motion[1];
 	}
 
 	@Override
 	public float getGyroscopeZ () {
-		return 0;
+		return motion[2];
 	}
 
 	@Override
@@ -351,6 +353,9 @@ public class SwitchInput implements Input {
 		switch (peripheral) {
 		case MultitouchScreen:
 			return true;
+		case Gyroscope:
+		case Accelerometer:
+			return SwitchApplication.isSwitch;
 		default:
 			return false;
 		}
@@ -430,4 +435,7 @@ public class SwitchInput implements Input {
 	private static native String showConfirm0(String title, String message, String[] buttons);
 
 	private static native void getTouchData(int[] touchData);
+
+	/** Gyroscope x, y, z (rad/s) and accelerometer x, y, z (m/s^2) of player 1's controller */
+	private static native void getMotion(float[] motion);
 }

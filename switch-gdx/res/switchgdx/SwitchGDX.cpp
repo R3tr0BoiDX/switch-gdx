@@ -118,6 +118,9 @@ static EGLConfig eglConfig;
 static PadState combinedPad;
 static PadState pads[8];
 
+// Motion sensors of handheld, a Pro Controller, and the left and right Joy-Con of a pair (player 1)
+static HidSixAxisSensorHandle sixAxisHandles[4];
+
 static int nxlinkSock = -1;
 static bool socketInit;
 #else
@@ -241,6 +244,12 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     for (int i = 1; i < 8; i++)
         padInitialize(&pads[i], static_cast<HidNpadIdType>(HidNpadIdType_No1 + i));
 
+    hidGetSixAxisSensorHandles(&sixAxisHandles[0], 1, HidNpadIdType_Handheld, HidNpadStyleTag_NpadHandheld);
+    hidGetSixAxisSensorHandles(&sixAxisHandles[1], 1, HidNpadIdType_No1, HidNpadStyleTag_NpadFullKey);
+    hidGetSixAxisSensorHandles(&sixAxisHandles[2], 2, HidNpadIdType_No1, HidNpadStyleTag_NpadJoyDual);
+    for (auto handle : sixAxisHandles)
+        hidStartSixAxisSensor(handle);
+
     setInitialize();
 
     hidInitializeTouchScreen();
@@ -326,6 +335,9 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_dispose(jcontext ctx) {
 #endif
 
 #ifdef __SWITCH__
+    for (auto handle : sixAxisHandles)
+        hidStopSixAxisSensor(handle);
+
     if (display) {
         eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (context)
@@ -1565,6 +1577,37 @@ void SM_com_thelogicmaster_switchgdx_SwitchControllerManager_remapControllers_in
     arg.hdr.enable_permit_joy_dual = dualJoy;
     arg.hdr.enable_single_mode = singleMode;
     hidLaShowControllerSupportForSystem(nullptr, &arg, false);
+#endif
+}
+
+// Gyroscope (rad/s) and accelerometer (m/s^2) of player 1's controller: handheld, a Pro Controller, or the right
+// Joy-Con of a pair (the left one if it is alone). Zeros without one
+void SM_com_thelogicmaster_switchgdx_SwitchInput_getMotion_Array1_float(jcontext ctx, jobject motion) {
+    auto out = (float *) ((jarray) motion)->data;
+    for (int i = 0; i < 6; i++)
+        out[i] = 0;
+#ifdef __SWITCH__
+    u32 styles = padGetStyleSet(&pads[0]);
+    HidSixAxisSensorHandle handle;
+    if (styles & HidNpadStyleTag_NpadHandheld)
+        handle = sixAxisHandles[0];
+    else if (styles & HidNpadStyleTag_NpadFullKey)
+        handle = sixAxisHandles[1];
+    else if (styles & HidNpadStyleTag_NpadJoyDual)
+        handle = sixAxisHandles[padGetAttributes(&pads[0]) & HidNpadAttribute_IsRightConnected ? 3 : 2];
+    else
+        return;
+    HidSixAxisSensorState state;
+    if (!hidGetSixAxisSensorStates(handle, &state, 1))
+        return;
+    // Horizon measures turns per second and G
+    const float turn = 6.2831853f, g = 9.80665f;
+    out[0] = state.angular_velocity.x * turn;
+    out[1] = state.angular_velocity.y * turn;
+    out[2] = state.angular_velocity.z * turn;
+    out[3] = state.acceleration.x * g;
+    out[4] = state.acceleration.y * g;
+    out[5] = state.acceleration.z * g;
 #endif
 }
 
