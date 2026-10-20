@@ -15,6 +15,8 @@ public class SwitchController implements Controller {
 	int prevButtons;
 	int id;
 	boolean disposed;
+	long vibrationEnd;
+	boolean vibrating;
 
 	SwitchController(int id) {
 		this.id = id;
@@ -35,6 +37,11 @@ public class SwitchController implements Controller {
 
 	boolean isAnyButtonJustPressed() {
 		return (buttons & ~prevButtons) != 0;
+	}
+
+	void updateVibration() {
+		if (vibrating && System.currentTimeMillis() >= vibrationEnd)
+			cancelVibration();
 	}
 
 	void dispose() {
@@ -84,22 +91,25 @@ public class SwitchController implements Controller {
 
 	@Override
 	public boolean canVibrate () {
-		return false;
+		return true;
 	}
 
 	@Override
 	public boolean isVibrating () {
-		return false;
+		return vibrating;
 	}
 
 	@Override
 	public void startVibration (int duration, float strength) {
-
+		SwitchControllerManager.vibrate(id, Math.max(0, Math.min(1, strength)));
+		vibrationEnd = System.currentTimeMillis() + duration;
+		vibrating = true;
 	}
 
 	@Override
 	public void cancelVibration () {
-
+		SwitchControllerManager.vibrate(id, 0);
+		vibrating = false;
 	}
 
 	@Override

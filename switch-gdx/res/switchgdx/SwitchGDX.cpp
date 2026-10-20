@@ -1521,6 +1521,47 @@ void SM_com_thelogicmaster_switchgdx_SwitchControllerManager_getAxes_int_Array1_
 #endif
 }
 
+#ifdef __SWITCH__
+// HD rumble on both motors of a controller (one for a single Joy-Con), amplitude 0 stops it
+static void vibrateNpad(HidNpadIdType id, float amplitude) {
+    u32 styles = hidGetNpadStyleSet(id);
+    HidNpadStyleTag style;
+    int count = 2;
+    if (styles & HidNpadStyleTag_NpadFullKey)
+        style = HidNpadStyleTag_NpadFullKey;
+    else if (styles & HidNpadStyleTag_NpadHandheld)
+        style = HidNpadStyleTag_NpadHandheld;
+    else if (styles & HidNpadStyleTag_NpadJoyDual)
+        style = HidNpadStyleTag_NpadJoyDual;
+    else if (styles & HidNpadStyleTag_NpadJoyLeft) {
+        style = HidNpadStyleTag_NpadJoyLeft;
+        count = 1;
+    } else if (styles & HidNpadStyleTag_NpadJoyRight) {
+        style = HidNpadStyleTag_NpadJoyRight;
+        count = 1;
+    } else
+        return;
+    HidVibrationDeviceHandle handles[2];
+    if (R_FAILED(hidInitializeVibrationDevices(handles, count, id, style)))
+        return;
+    HidVibrationValue values[2];
+    for (int i = 0; i < count; i++)
+        values[i] = {amplitude, 160.0f, amplitude, 320.0f};
+    hidSendVibrationValues(handles, values, count);
+}
+#endif
+
+void SM_com_thelogicmaster_switchgdx_SwitchControllerManager_vibrate_int_float(jcontext ctx, jint controller, jfloat amplitude) {
+#ifdef __SWITCH__
+    // pads[0] reads handheld and player 1, the combined controller (-1) every pad
+    if (controller <= 0)
+        vibrateNpad(HidNpadIdType_Handheld, amplitude);
+    for (int i = 0; i < 8; i++)
+        if (controller == -1 or controller == i)
+            vibrateNpad(static_cast<HidNpadIdType>(HidNpadIdType_No1 + i), amplitude);
+#endif
+}
+
 jbool SM_com_thelogicmaster_switchgdx_SwitchControllerManager_isConnected_int_R_boolean(jcontext ctx, jint controller) {
 #ifdef __SWITCH__
     return pads[controller].active_handheld or pads[controller].active_id_mask;

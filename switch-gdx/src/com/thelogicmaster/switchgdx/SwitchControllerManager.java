@@ -81,6 +81,7 @@ public class SwitchControllerManager implements ControllerManager {
 	}
 
 	private void updateController(SwitchController controller, int index) {
+		controller.updateVibration();
 		System.arraycopy(controller.axes, 0, controller.prevAxes, 0, 4);
 		getAxes(index, controller.axes);
 		controller.prevButtons = controller.buttons;
@@ -124,6 +125,9 @@ public class SwitchControllerManager implements ControllerManager {
 	private static native void getAxes(int controller, float[] axes);
 
 	private static native boolean isConnected(int controller);
+
+	/** HD rumble on the controller (-1: all), 0 stops it */
+	static native void vibrate(int controller, float amplitude);
 
 	private static native void remapControllers(int min, int max, boolean enableDualJoy, boolean enableSingle);
 }
