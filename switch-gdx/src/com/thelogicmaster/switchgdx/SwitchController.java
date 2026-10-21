@@ -16,6 +16,7 @@ public class SwitchController implements Controller {
 	int prevButtons;
 	int id;
 	boolean disposed;
+	/** System.nanoTime when the rumble stops: the wall clock can jump */
 	long vibrationEnd;
 	boolean vibrating;
 
@@ -41,7 +42,7 @@ public class SwitchController implements Controller {
 	}
 
 	void updateVibration() {
-		if (vibrating && System.currentTimeMillis() >= vibrationEnd)
+		if (vibrating && System.nanoTime() - vibrationEnd >= 0)
 			cancelVibration();
 	}
 
@@ -110,7 +111,7 @@ public class SwitchController implements Controller {
 		int result = SwitchControllerManager.vibrate(id, Math.max(0, Math.min(1, left)), Math.max(0, Math.min(1, right)));
 		if (result != 0)
 			Gdx.app.error("SwitchController", "Rumble failed: 0x" + Integer.toHexString(result));
-		vibrationEnd = System.currentTimeMillis() + duration;
+		vibrationEnd = System.nanoTime() + duration * 1000000L;
 		vibrating = true;
 	}
 
