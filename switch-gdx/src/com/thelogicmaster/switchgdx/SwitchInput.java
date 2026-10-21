@@ -33,9 +33,11 @@ public class SwitchInput implements Input {
 	private final boolean[] touched = new boolean[MAX_TOUCHES];
 	private boolean wasJustTouched;
 	private final boolean touchscreen;
+	private final boolean buttonKeys;
 
-	public SwitchInput (boolean touchscreen) {
+	public SwitchInput (boolean touchscreen, boolean buttonKeys) {
 		this.touchscreen = touchscreen;
+		this.buttonKeys = buttonKeys;
 		for (int i = 0; i < MAX_TOUCHES; i++) {
 			previousTouchData[i * 3] = -1;
 			rawTouchIds[i] = -1;
@@ -118,6 +120,8 @@ public class SwitchInput implements Input {
 
 		System.arraycopy(touchData, 0, previousTouchData, 0, MAX_TOUCHES * 3);
 
+		if (!buttonKeys)
+			return;
 		SwitchController currentController = (SwitchController)SwitchControllerManager.getInstance().getCurrentController();
 		for (int key: SWITCH_KEYS) {
 			int button = keyToButton(key);
@@ -248,6 +252,8 @@ public class SwitchInput implements Input {
 
 	@Override
 	public boolean isKeyPressed (int key) {
+		if (!buttonKeys)
+			return false;
 		if (key == Keys.ANY_KEY)
 			return ((SwitchController)Controllers.getCurrent()).isAnyButtonPressed();
 		int button = keyToButton(key);
@@ -256,6 +262,8 @@ public class SwitchInput implements Input {
 
 	@Override
 	public boolean isKeyJustPressed (int key) {
+		if (!buttonKeys)
+			return false;
 		if (key == Keys.ANY_KEY)
 			return ((SwitchController)Controllers.getCurrent()).isAnyButtonJustPressed();
 		int button = keyToButton(key);

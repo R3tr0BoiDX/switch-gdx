@@ -57,7 +57,7 @@ public class SwitchApplication implements Application {
 			applicationLogger = new SwitchLogger();
 			graphics = new SwitchGraphics();
 			files = new SwitchFiles();
-			input = new SwitchInput(config.touchscreen);
+			input = new SwitchInput(config.touchscreen, config.buttonKeys);
 			net = new SwitchNet();
 			audio = new SwitchAudio();
 
@@ -324,6 +324,10 @@ public class SwitchApplication implements Application {
 		/** Report touches (the Switch's touchscreen, the mouse on the desktop) */
 		private boolean touchscreen = true;
 
+		/** Also report controller buttons as keys (Keys.BUTTON_A, Keys.DPAD_UP, ...: key events and isKeyPressed).
+		 * Keys.DPAD_* are the arrow keys, so apps with keyboard bindings and controller support turn this off */
+		private boolean buttonKeys = true;
+
 		public Config() {
 		}
 
@@ -367,6 +371,10 @@ public class SwitchApplication implements Application {
 
 		public void setTouchscreen(boolean touchscreen) {
 			this.touchscreen = touchscreen;
+		}
+
+		public void setButtonKeys(boolean buttonKeys) {
+			this.buttonKeys = buttonKeys;
 		}
 
 		public void setSwapIntervals(int handheld, int docked) {
