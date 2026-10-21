@@ -68,6 +68,11 @@ public class SwitchSound implements Sound {
 	
 	private static int failedPlays;
 
+	/** Logs how many sounds found no free channel, at exit: while running only every 100th is logged */
+	static void logFailedPlays () {
+		Gdx.app.log("SwitchSound", "No channel for " + failedPlays + " sounds in total");
+	}
+
 	private long play(float volume, float pitch, float pan, boolean looping) {
 		int channel = play0(looping, volume, pan);
 		// -1 means no free channel (or no chunk). Used as a channel below, it would set the volume of every channel.

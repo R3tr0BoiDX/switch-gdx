@@ -97,6 +97,7 @@ public class SwitchApplication implements Application {
 				listener.render();
 			}
 
+			SwitchSound.logFailedPlays();
 			for (LifecycleListener lifecycleListener : new Array.ArrayIterable<>(lifecycleListeners))
 				lifecycleListener.dispose();
 			listener.dispose();
