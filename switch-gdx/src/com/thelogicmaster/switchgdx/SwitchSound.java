@@ -14,6 +14,7 @@ public class SwitchSound implements Sound {
 	private static class SoundInstance {
 		int channel;
 		boolean looping;
+		float pitch;
 	}
 	
 	@FunctionalInterface
@@ -74,7 +75,7 @@ public class SwitchSound implements Sound {
 	}
 
 	private long play(float volume, float pitch, float pan, boolean looping) {
-		int channel = play0(looping, volume, pan);
+		int channel = play0(looping, volume, pitch, pan);
 		// -1 means no free channel (or no chunk). Used as a channel below, it would set the volume of every channel.
 		if (channel < 0) {
 			if (failedPlays++ % 100 == 0)
@@ -82,11 +83,11 @@ public class SwitchSound implements Sound {
 					+ failedPlays + " so far");
 			return -1;
 		}
-		setPitch0(channel, pitch);
 		SoundInstance instance = soundPool.obtain();
 		instanceMap.put(id, instance);
 		instance.channel = channel;
 		instance.looping = looping;
+		instance.pitch = pitch;
 		return id++;
 	}
 
@@ -177,16 +178,14 @@ public class SwitchSound implements Sound {
 		// It's not possible to change looping flag, so restart sound...
 		SoundInstance instance = instanceMap.get((int)soundId);
 		if (instance != null && instance.looping != looping) {
-			setLooping0(instance.channel, looping);
+			setLooping0(instance.channel, looping, instance.pitch);
 			instance.looping = looping;
 		}
 	}
 
+	/** Not supported: SDL_mixer can't change the pitch of a playing sound. Pass the pitch to play or loop instead */
 	@Override
 	public void setPitch (long soundId, float pitch) {
-		// Todo: Actually implement effect
-		if (instanceMap.containsKey((int)soundId))
-			setPitch0(instanceMap.get((int)soundId).channel, pitch);
 	}
 
 	@Override
@@ -210,18 +209,17 @@ public class SwitchSound implements Sound {
 
 	private native void dispose0();
 
-	/** Starts the sound on a free channel with this volume and pan, returns the channel or -1 */
-	private native int play0(boolean looping, float volume, float pan);
+	/** Starts the sound on a free channel with this volume, pitch (0.5-2) and pan, returns the channel or -1 */
+	private native int play0(boolean looping, float volume, float pitch, float pan);
 
-	private native void setLooping0(int channel, boolean looping);
+	/** Restarts the sound on its channel */
+	private native void setLooping0(int channel, boolean looping, float pitch);
 
 	private static native void stop0(int channel);
 
 	private static native void pause0(int channel);
 
 	private static native void resume0(int channel);
-
-	private static native void setPitch0(int channel, float pitch);
 
 	private static native void setVolume0(int channel, float volume);
 

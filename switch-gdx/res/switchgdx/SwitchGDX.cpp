@@ -33,6 +33,8 @@
 #include <fcntl.h>
 #include <csignal>
 #include <vector>
+#include <map>
+#include <cmath>
 #include <string>
 #include <mutex>
 #include "switchgdx/gdx_buffer_utils.h"
@@ -108,6 +110,11 @@ static std::mutex audioCallbackLock;
 static std::vector<int> soundFinishedEvents;
 static bool musicFinishedEvent;
 static bool exitOnPlus = true;
+// Mixer output format, chunks are converted to it when loaded
+static int audioChannels;
+static bool audio16Bit;
+// SDL_mixer has no pitch: a sound plays a resampled copy of its chunk, made on first use per pitch step
+static std::map<Mix_Chunk *, std::map<int, Mix_Chunk *>> pitchedChunks;
 
 #ifdef __SWITCH__
 static EGLDisplay display;
@@ -323,6 +330,9 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     Mix_Init(MIX_INIT_MP3 | MIX_INIT_OGG);
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 4096);
     Mix_AllocateChannels(32);
+    Uint16 audioFormat = 0;
+    Mix_QuerySpec(nullptr, &audioFormat, &audioChannels);
+    audio16Bit = audioFormat == AUDIO_S16SYS;
     Mix_HookMusicFinished(onMusicFinished);
     Mix_ChannelFinished(onSoundFinished);
 
@@ -1108,8 +1118,52 @@ void M_com_thelogicmaster_switchgdx_SwitchSound_dispose0(jcontext ctx, jobject s
     auto &handle = ((com_thelogicmaster_switchgdx_SwitchSound *) self)->F_handle;
     if (!handle)
         return;
+    auto pitched = pitchedChunks.find((Mix_Chunk *)handle);
+    if (pitched != pitchedChunks.end()) {
+        for (auto &copy : pitched->second)
+            Mix_FreeChunk(copy.second);
+        pitchedChunks.erase(pitched);
+    }
     Mix_FreeChunk((Mix_Chunk *)handle);
     handle = 0;
+}
+
+// The chunk resampled to a pitch (0.5-2, steps of 0.02), linear interpolation. The copy is kept until the sound is
+// disposed. Pitch 1, or a mixer format other than 16 bit, plays the chunk itself
+static Mix_Chunk *getPitchedChunk(Mix_Chunk *chunk, float pitch) {
+    if (!chunk || !audio16Bit)
+        return chunk;
+    int step = (int)lroundf(fminf(fmaxf(pitch, 0.5f), 2.f) * 50);
+    int frames = chunk->alen / (2 * audioChannels);
+    if (step == 50 || frames < 2)
+        return chunk;
+    auto &copy = pitchedChunks[chunk][step];
+    if (copy)
+        return copy;
+    float rate = step / 50.f;
+    int copyFrames = (int)(frames / rate);
+    auto in = (Sint16 *)chunk->abuf;
+    auto out = (Sint16 *)SDL_malloc(copyFrames * 2 * audioChannels);
+    copy = (Mix_Chunk *)SDL_malloc(sizeof(Mix_Chunk));
+    if (!out || !copy) {
+        SDL_free(out);
+        SDL_free(copy);
+        pitchedChunks[chunk].erase(step);
+        return chunk;
+    }
+    for (int i = 0; i < copyFrames; i++) {
+        double position = i * (double)rate;
+        int frame = (int)position;
+        int next = SDL_min(frame + 1, frames - 1);
+        float t = (float)(position - frame);
+        for (int c = 0; c < audioChannels; c++)
+            out[i * audioChannels + c] = (Sint16)(in[frame * audioChannels + c] * (1 - t) + in[next * audioChannels + c] * t);
+    }
+    copy->allocated = 1;
+    copy->abuf = (Uint8 *)out;
+    copy->alen = copyFrames * 2 * audioChannels;
+    copy->volume = chunk->volume;
+    return copy;
 }
 
 static void setChannelPan(int channel, float pan) {
@@ -1126,17 +1180,19 @@ static void setChannelPan(int channel, float pan) {
 
 // Volume and panning go on the free channel before the sound starts: set afterwards, the mixer thread could already
 // play its start at the volume of the channel's previous sound (quiet footsteps starting at full volume)
-jint M_com_thelogicmaster_switchgdx_SwitchSound_play0_boolean_float_float_R_int(jcontext ctx, jobject self, jbool looping, jfloat volume, jfloat pan) {
+jint M_com_thelogicmaster_switchgdx_SwitchSound_play0_boolean_float_float_float_R_int(jcontext ctx, jobject self, jbool looping, jfloat volume, jfloat pitch, jfloat pan) {
     int channel = Mix_GroupAvailable(-1);
     if (channel < 0)
         return -1;
     Mix_Volume(channel, (int)(volume * MIX_MAX_VOLUME));
     setChannelPan(channel, pan);
-    return Mix_PlayChannel(channel, (Mix_Chunk*)((com_thelogicmaster_switchgdx_SwitchSound *) self)->F_handle, looping ? -1 : 0);
+    auto chunk = getPitchedChunk((Mix_Chunk*)((com_thelogicmaster_switchgdx_SwitchSound *) self)->F_handle, pitch);
+    return Mix_PlayChannel(channel, chunk, looping ? -1 : 0);
 }
 
-void M_com_thelogicmaster_switchgdx_SwitchSound_setLooping0_int_boolean(jcontext ctx, jobject self, jint channel, jbool looping) {
-    Mix_PlayChannel(channel, (Mix_Chunk*)((com_thelogicmaster_switchgdx_SwitchSound *) self)->F_handle, looping ? -1 : 0);
+void M_com_thelogicmaster_switchgdx_SwitchSound_setLooping0_int_boolean_float(jcontext ctx, jobject self, jint channel, jbool looping, jfloat pitch) {
+    auto chunk = getPitchedChunk((Mix_Chunk*)((com_thelogicmaster_switchgdx_SwitchSound *) self)->F_handle, pitch);
+    Mix_PlayChannel(channel, chunk, looping ? -1 : 0);
 }
 
 void SM_com_thelogicmaster_switchgdx_SwitchSound_stop0_int(jcontext ctx, jint channel) {
@@ -1149,10 +1205,6 @@ void SM_com_thelogicmaster_switchgdx_SwitchSound_pause0_int(jcontext ctx, jint c
 
 void SM_com_thelogicmaster_switchgdx_SwitchSound_resume0_int(jcontext ctx, jint channel) {
     Mix_Resume(channel);
-}
-
-void SM_com_thelogicmaster_switchgdx_SwitchSound_setPitch0_int_float(jcontext ctx, jint channel, jfloat pitch) {
-    // Todo: Custom pitch changing effect based on: https://gist.github.com/hydren/ea794e65e95c7713c00c88f74b71f8b1
 }
 
 void SM_com_thelogicmaster_switchgdx_SwitchSound_setVolume0_int_float(jcontext ctx, jint channel, jfloat volume) {
