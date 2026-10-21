@@ -22,6 +22,8 @@ public class SwitchInput implements Input {
 	private long currentEventTimeStamp;
 	private final int[] touchData = new int[MAX_TOUCHES * 3];
 	private final float[] motion = new float[6];
+	/** The motion sensors are read once per frame, when an app first asks for them */
+	private boolean motionRead;
 	private final int[] previousTouchData = new int[MAX_TOUCHES * 3];
 	private final int[] rawTouchIds = new int[MAX_TOUCHES];
 	private final int[] touchX = new int[MAX_TOUCHES];
@@ -42,7 +44,7 @@ public class SwitchInput implements Input {
 
 	void update() {
 		currentEventTimeStamp = System.nanoTime();
-		getMotion(motion);
+		motionRead = false;
 		wasJustTouched = false;
 		if (touchscreen)
 			getTouchData(touchData);
@@ -126,34 +128,42 @@ public class SwitchInput implements Input {
 		}
 	}
 
+	private float motion (int index) {
+		if (!motionRead) {
+			getMotion(motion);
+			motionRead = true;
+		}
+		return motion[index];
+	}
+
 	@Override
 	public float getAccelerometerX () {
-		return motion[3];
+		return motion(3);
 	}
 
 	@Override
 	public float getAccelerometerY () {
-		return motion[4];
+		return motion(4);
 	}
 
 	@Override
 	public float getAccelerometerZ () {
-		return motion[5];
+		return motion(5);
 	}
 
 	@Override
 	public float getGyroscopeX () {
-		return motion[0];
+		return motion(0);
 	}
 
 	@Override
 	public float getGyroscopeY () {
-		return motion[1];
+		return motion(1);
 	}
 
 	@Override
 	public float getGyroscopeZ () {
-		return motion[2];
+		return motion(2);
 	}
 
 	@Override
