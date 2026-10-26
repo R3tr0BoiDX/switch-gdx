@@ -329,7 +329,7 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
 
     Mix_Init(MIX_INIT_MP3 | MIX_INIT_OGG);
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 4096);
-    Mix_AllocateChannels(32);
+    Mix_AllocateChannels(64);
     Uint16 audioFormat = 0;
     Mix_QuerySpec(nullptr, &audioFormat, &audioChannels);
     audio16Bit = audioFormat == AUDIO_S16SYS;
