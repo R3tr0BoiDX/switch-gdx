@@ -40,7 +40,9 @@
 #include "switchgdx/gdx2d.h"
 #include "switchgdx/etc1_utils.h"
 #include "switchgdx/tinyfiledialogs.h"
+#ifdef SWITCHGDX_NET
 #include <curl/curl.h>
+#endif
 #include <chrono>
 #include <SDL.h>
 #include "switchgdx/SDL_mixer.h"
@@ -334,7 +336,9 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_init_boolean_boolean_int_
     Mix_HookMusicFinished(onMusicFinished);
     Mix_ChannelFinished(onSoundFinished);
 
+#ifdef SWITCHGDX_NET
     curl_global_init(CURL_GLOBAL_ALL);
+#endif
 }
 
 void SM_com_thelogicmaster_switchgdx_SwitchApplication_dispose(jcontext ctx) {
@@ -361,7 +365,9 @@ void SM_com_thelogicmaster_switchgdx_SwitchApplication_dispose(jcontext ctx) {
     romfsExit();
 #endif
 
+#ifdef SWITCHGDX_NET
     curl_global_cleanup();
+#endif
 }
 
 #ifndef __SWITCH__
@@ -687,6 +693,7 @@ jbool M_com_thelogicmaster_switchgdx_SwitchNet_openURI_java_lang_String_R_boolea
 #endif
 }
 
+#ifdef SWITCHGDX_NET
 static size_t curlWriteCallback(void *contents, size_t size, size_t nmemb, void *string) {
     auto *data = (std::string *)string;
     data->append((const char *)contents, size * nmemb);
@@ -741,6 +748,12 @@ jobject SM_com_thelogicmaster_switchgdx_SwitchNet_sendRequest_java_lang_String_A
 
     return nullptr;
 }
+#else
+jobject SM_com_thelogicmaster_switchgdx_SwitchNet_sendRequest_java_lang_String_Array1_byte_Array1_java_lang_String_java_lang_String_long_com_thelogicmaster_switchgdx_SwitchHttpResponse_R_java_lang_String
+        (jcontext ctx, jobject urlObj, jobject contentArray, jobject headersArray, jobject methodObj, jlong timeout, jobject httpResponse) {
+    return (jobject) stringFromNative(ctx, "HTTP requests need switch-gdx built with SWITCHGDX_NET");
+}
+#endif
 
 void M_com_thelogicmaster_switchgdx_SwitchMusic_create_java_lang_String(jcontext ctx, jobject self, jobject file) {
     auto music = Mix_LoadMUS(stringToNative(ctx, (jstring) file));

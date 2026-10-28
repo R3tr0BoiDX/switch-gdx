@@ -1,8 +1,6 @@
 {
     "nonOptimized": [
-        "com.badlogic.gdx.graphics.g2d.freetype.FreeType",
-        "com.badlogic.gdx.Input$TextInputListener",
-        "com.badlogic.gdx.physics.box2d.**"
+        "com.badlogic.gdx.Input$TextInputListener"
     ],
     "reflective": [
         "com.thelogicmaster.switchgdx.SwitchControllerManager",

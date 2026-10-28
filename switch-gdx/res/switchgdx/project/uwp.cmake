@@ -4,12 +4,13 @@ project(SwitchGDX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD 11)
 
-include_directories(src src/soloud) src/switchgdx/bullet/bullet src/switchgdx/bullet/custom src/switchgdx/bullet/extras/Serialize src/switchgdx/bullet/extras)
+include_directories(src)
 file(GLOB_RECURSE SRCS src/*.cpp src/*.c)
+include(${CMAKE_CURRENT_LIST_DIR}/modules.cmake)
 add_executable(SwitchGDX WIN32 ${SRCS})
 
 target_compile_options(SwitchGDX PRIVATE "-await" "/Zc:preprocessor")
-target_compile_definitions(SwitchGDX PRIVATE UNICODE WITH_SDL2_STATIC NOJNI ASMJIT_NO_JIT BT_NO_PROFILE BT_USE_INVERSE_DYNAMICS_WITH_BULLET2)
+target_compile_definitions(SwitchGDX PRIVATE UNICODE WITH_SDL2_STATIC NOJNI ASMJIT_NO_JIT)
 
 set(CMAKE_SYSTEM_NAME "WindowsStore" CACHE INTERNAL "" FORCE )
 
@@ -29,8 +30,6 @@ find_package(SDL2_mixer REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
 find_package(libffi REQUIRED)
-find_package(Freetype REQUIRED)
-find_package(CURL REQUIRED)
 
 if(THREADS_HAVE_PTHREAD_ARG)
   target_compile_options(SwitchGDX PUBLIC "-pthread")
@@ -45,7 +44,14 @@ if(WIN32)
   target_link_libraries(SwitchGDX PRIVATE wsock32 ws2_32)
 endif()
 
-target_link_libraries(SwitchGDX PRIVATE unofficial::angle::libEGL unofficial::angle::libGLESv2 SDL2::SDL2 SDL2_mixer::SDL2_mixer ZLIB::ZLIB CURL::libcurl libffi ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/lib/zzip.lib ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/lib/freetype.lib ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/lib/mpg123.lib)
+target_link_libraries(SwitchGDX PRIVATE unofficial::angle::libEGL unofficial::angle::libGLESv2 SDL2::SDL2 SDL2_mixer::SDL2_mixer ZLIB::ZLIB libffi ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/lib/zzip.lib ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/lib/mpg123.lib)
+if(SWITCHGDX_FREETYPE)
+  target_link_libraries(SwitchGDX PRIVATE ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/lib/freetype.lib)
+endif()
+if(SWITCHGDX_NET)
+  find_package(CURL REQUIRED)
+  target_link_libraries(SwitchGDX PRIVATE CURL::libcurl)
+endif()
 
 target_link_libraries(SwitchGDX PRIVATE WindowsApp.lib rpcrt4.lib onecoreuap.lib kernel32.lib)
 set_target_properties(SwitchGDX PROPERTIES VS_GLOBAL_MinimalCoreWin "true")
@@ -55,8 +61,10 @@ list(APPEND DLLS
 	${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/debug/bin/SDL2d.dll
 	${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/debug/bin/SDL2_mixerd.dll
 	${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/debug/bin/zlibd1.dll
-	${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/debug/bin/libcurl-d.dll
 )
+if(SWITCHGDX_NET)
+  list(APPEND DLLS ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-uwp/debug/bin/libcurl-d.dll)
+endif()
 
 target_sources(SwitchGDX PRIVATE ${DLLS})
 set_property(SOURCE ${DLLS} PROPERTY VS_DEPLOYMENT_CONTENT 1)
