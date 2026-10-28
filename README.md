@@ -126,8 +126,7 @@ directory with the `SwitchLauncher` source class. The module needs to be added t
 the title and author variables and the asset copy paths, if not in `core/assets`. Any source paths to be used with the
 jnigen style native code inlining also needs to be added to the transpiler arguments in `switch/build.gradle`. As far
 as libraries are concerned, if they require using GDX reflection, then those classes need to be added
-to the `switch.json` `reflective` class pattern list. To enable the Ryujinx emulator, download/install it then set `ryujinxPath` in the `local.properties` file 
-(Create if needed). Make sure Java Home points to Java 17 or select a Java 17 JDK as the Gradle JDK in Intellij build 
+to the `switch.json` `reflective` class pattern list. Make sure Java Home points to Java 17 or select a Java 17 JDK as the Gradle JDK in Intellij build 
 settings. Ensure that the project itself compiles with the Java 8 language level. 
 
 ## Usage
@@ -138,7 +137,6 @@ transpiling into one directory then using rsync to only copy the changed files i
 - __run__: Transpile, then run the C++ project in desktop-mode with emulated controller inputs (Yuzu layout)
 - __nro__: Transpile, then build a Nintendo Switch Homebrew NRO executable
 - __deploy__: Build NRO, then deploy to a Switch over LAN using NxLink
-- __ryujinx__: Build NRO, then run in Ryujinx emulator
 - __uwp__: Transpile, then open UWP project in Visual Studio
 
 ### Deploying to Switch
