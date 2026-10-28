@@ -28,21 +28,6 @@
 
         "com.badlogic.gdx.Net",
 
-        "com.badlogic.gdx.maps.MapObject",
-        "com.badlogic.gdx.maps.objects.**",
-        "com.badlogic.gdx.maps.tiled.objects.**",
-
-        "com.badlogic.gdx.graphics.g3d.particles.ParticleEffect",
-        "com.badlogic.gdx.graphics.g3d.particles.ParticleController",
-        "com.badlogic.gdx.graphics.g3d.particles.ResourceData",
-        "com.badlogic.gdx.graphics.g3d.particles.ResourceData.SaveData",
-        "com.badlogic.gdx.graphics.g3d.particles.ResourceData.AssetData",
-        "com.badlogic.gdx.graphics.g3d.particles.ParallelArray",
-        "com.badlogic.gdx.graphics.g3d.particles.values.**",
-        "com.badlogic.gdx.graphics.g3d.particles.emitters.**",
-        "com.badlogic.gdx.graphics.g3d.particles.influencers.**",
-        "com.badlogic.gdx.graphics.g3d.particles.renderers.**",
-
         "java.util.Collection",
         "java.util.List",
         "java.util.ArrayList",
