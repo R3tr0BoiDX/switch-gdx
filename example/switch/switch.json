@@ -1,8 +1,0 @@
-{
-    "mainClass": "com.thelogicmaster.example.SwitchLauncher",
-    "reflective": [],
-    "useStackTraces": true,
-    "useLineNumbers": true,
-    "useValueChecks": true,
-    "useStackCookies": true
-}
