@@ -1,5 +1,11 @@
 # SwitchGDX
-[![Release](https://jitpack.io/v/com.thelogicmaster/switch-gdx.svg)](https://jitpack.io/#com.thelogicmaster/switch-gdx)
+
+**This is the `delver-port` fork** used by [delverengine-nx](https://github.com/R3tr0BoiDX/delverengine-nx), the
+Nintendo Switch port of Delver. Upstream is [TheLogicMaster/switch-gdx](https://github.com/TheLogicMaster/switch-gdx).
+The fork fixes bugs and adds features the port needed (sound pitch, HD rumble, motion sensors, docked resolution,
+buttons without key events and more; see the commit log), and it drops upstream's example project, test suite and
+port showcase. Bullet, Box2D, FreeType and HTTP are optional modules here (see below). It builds as version
+`3.0.2-delver` and is used as a Gradle composite build, not from JitPack.
 
 ## About
 This is a Nintendo Switch Homebrew and Xbox UWP backend for the [LibGDX](https://libgdx.com) game framework. It uses
@@ -7,14 +13,6 @@ the [Clearwing VM](https://github.com/TheLogicMaster/clearwing-vm) project to tr
 native bindings for LibGDX. It supports Nintendo Switch Homebrew builds using LibNX, and Xbox/Windows Store with UWP.
 See the SwitchGDX [thread](https://discord.com/channels/348229412858101762/965372515285352468) on the LibGDX Discord 
 server for support.
-
-## Ports
-See [Ports](PORTS.md) for a list of current ports.
-
-**Mindustry, Pixel Wheels, and Shattered Pixel Dungeon Ports**
-![Mindustry](media/Mindustry.png)
-![Pixel Wheels](media/PixelWheels.png)
-![Shattered Pixel Dungeon](media/ShatteredPixel.png)
 
 ## Features
 - Full GDX Reflection support
@@ -27,7 +25,21 @@ See [Ports](PORTS.md) for a list of current ports.
 The majority of LibGDX is fully supported. A few features such as GL30 and audio recording are currently unsupported.
 
 ## Extensions
-FreeType, Controllers, Box2D, Bullet are supported.
+Controllers are always supported. FreeType, Box2D, Bullet and HTTP requests are optional modules.
+
+## Optional modules
+They are off by default, so games that don't use them don't compile or link them. Turn one on with a CMake option
+when configuring the generated C++ project (`project/modules.cmake`, used by the Switch, desktop and UWP builds):
+
+| Option | What it adds | Also needed in the game |
+| --- | --- | --- |
+| `-DSWITCHGDX_BULLET=ON` | Bullet physics natives | `gdx-bullet` |
+| `-DSWITCHGDX_BOX2D=ON` | Box2D natives | `gdx-box2d`, and `com.badlogic.gdx.physics.box2d.**` in `nonOptimized` |
+| `-DSWITCHGDX_FREETYPE=ON` | FreeType natives, links freetype (and harfbuzz on the Switch) | `gdx-freetype`, and `com.badlogic.gdx.graphics.g2d.freetype.FreeType` in `nonOptimized` |
+| `-DSWITCHGDX_NET=ON` | `Net.sendHttpRequest` through libcurl | - |
+
+`nonOptimized` and `reflective` go in the game's own Clearwing config (`switch.json`), which is merged with this
+library's. Without `SWITCHGDX_NET`, HTTP requests fail with a message. TCP sockets are not supported at all.
 
 ## JVM Languages
 Since Clearwing takes Bytecode as an input, it can support any JVM language. The main limitation would be the Clearwing
@@ -37,29 +49,27 @@ added as needed. Java and Kotlin have been tested and work.
 ## Libraries
 Pure Java libraries should work without any extra work, assuming they don't use unsupported runtime library features or
 JNI. Libraries compiled with newer Java versions could also pose an issue. If a library uses JNI, custom native
-bindings could be provided and things should just work, the shared library loading API has no effect. See
-[Libraries](LIBRARIES.md) for a list of tested libraries.
+bindings could be provided and things should just work, the shared library loading API has no effect. Libraries that
+load classes through reflection (e.g. tiled maps or g3d particle effects) need those classes in the game's `reflective`
+list.
 
 ## Todo
 - Multithreaded AssetManager support
 - Switch-specific API (Controller remapping)
 - Controller analog trigger support, remapping API, rumble
 - I18N non-simple
-- Sound effect pitch control
 - GL30
 - Set main thread exception handler to show error dialog
-- Fix sockets
 - VSCode project support
 - Keyboard input support
 - Mac OS support
-- Fix second launch crash on Switch (Probably cleanup issue)
 
 ## Limitations
 See the [Clearwing](https://github.com/TheLogicMaster/clearwing-vm) documentation for the limitations inherent to the "VM"
 - Only one Music instance can play at a time
 - Sound effects are limited to OGG and WAV, Music supports MP3, OGG, and WAV
 - Unused classes are optimized out, use the `reflective` `switch.json` config option to prevent it for specific classes for reflection
-- Socket server only supports IPv4 (Not supported at all at present)
+- TCP sockets are not supported (`Net.newClientSocket` and `newServerSocket` throw)
 
 ## Installation
 In addition to the C++ dependencies, JDK 17 is required. Rsync is used for incremental compilation, and CMake is used
@@ -70,7 +80,8 @@ for building the generated C++ project.
 - With APT: `sudo apt install build-essential texinfo rsync cmake ninja-build libsdl2-mixer-dev zlib1g-dev libglew-dev libfreetype-dev libcurl4-gnutls-dev libzzip-dev`
 - With Homebrew: `brew install sdl2 sdl2_mixer libffi curl libzzip freetype cmake pkgconf`
 - Install [devkitPro pacman](https://github.com/devkitPro/pacman/releases/tag/v1.0.2)
-- `dkp-pacman -S switch-zlib switch-libvorbis switch-zziplib switch-sdl2 switch-sdl2_mixer switch-freetype switch-glad switch-curl switch-bulletphysics dkp-toolchain-vars`
+- `dkp-pacman -S switch-zlib switch-libvorbis switch-zziplib switch-sdl2 switch-sdl2_mixer switch-freetype switch-glad switch-curl dkp-toolchain-vars`
+- Freetype and curl (and their Switch packages) are only needed for the optional modules
 
 ### Windows
 - Ensure the project directory is as close to the filesystem root as possible to avoid Windows path limits (In 2025...)
@@ -105,8 +116,7 @@ sudo cp ./aarch64-none-elf/libffi.pc $DEVKITPRO/portlibs/switch/lib/pkgconfig/
 - Run twice (Rebuild) for DLLs and assets to properly be copied for some reason
 
 ## Project Setup
-For reference, there's an `example` project provided with the needed Gradle config to build a SwitchGDX project. If you
-are creating a new LibGDX project, there's a fork of the project builder, [gdx-liftoff](https://github.com/tommyettinger/gdx-liftoff), 
+If you are creating a new LibGDX project, there's a fork of the project builder, [gdx-liftoff](https://github.com/tommyettinger/gdx-liftoff), 
 with the SwitchGDX backend [here](https://github.com/TheLogicMaster/gdx-liftoff). Just enable the Switch backend, and it
 will take care of the rest. To add SwitchGDX to an existing project, a new Gradle subproject needs to be created, 
 adding the `switch` directory with the icon, `switch.json` config file, `build.gradle` file, and the actual `src`
@@ -115,9 +125,8 @@ directory with the `SwitchLauncher` source class. The module needs to be added t
 `build.gradle`, depending on the project layout. The switch `build.gradle` can be mostly copy-pasted, changing only
 the title and author variables and the asset copy paths, if not in `core/assets`. Any source paths to be used with the
 jnigen style native code inlining also needs to be added to the transpiler arguments in `switch/build.gradle`. As far
-as [libraries](LIBRARIES.md) are concerned, if they require using GDX reflection, then those classes need to be added
-to the `switch.json` `reflective` class pattern list. The list of verified libraries details the needed config 
-entries. To enable the Ryujinx emulator, download/install it then set `ryujinxPath` in the `local.properties` file 
+as libraries are concerned, if they require using GDX reflection, then those classes need to be added
+to the `switch.json` `reflective` class pattern list. To enable the Ryujinx emulator, download/install it then set `ryujinxPath` in the `local.properties` file 
 (Create if needed). Make sure Java Home points to Java 17 or select a Java 17 JDK as the Gradle JDK in Intellij build 
 settings. Ensure that the project itself compiles with the Java 8 language level. 
 
@@ -164,12 +173,6 @@ debugging, which is often extremely useful for dynamically inspecting values wit
 On Windows, if you change the working directory in CLion, it doesn't seem to find the required shared libraries, so
 manually copying the DLLs from `C:\msys64\mingw64\bin` into the executable directory may be necessary. Adding
 the directory to the `Path` doesn't seem to be sufficient.
-
-## Test Suite
-The `tests` module is for running the GDX test suite and verifying GDX functionality. See [Tests](TESTS.md) for working
-features. Building the test module requires building the tests module JAR in the libgdx repo and putting it in 
-`tests/libs`, in addition to the lwjgl3 test module JAR for the required assets. The `tests` module is disabled if the 
-`tests/libs` directory doesn't exist to not break JitPack builds and such.
 
 ## Notes
 - Concurrent access to files is more limited on Switch where it might normally work on PC, so ensure files are closed properly
