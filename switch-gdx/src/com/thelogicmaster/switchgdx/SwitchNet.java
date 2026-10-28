@@ -85,19 +85,20 @@ public class SwitchNet implements Net {
 		}
 	}
 
+	// TCP sockets aren't implemented (upstream's natives were never ported to the current runtime)
 	@Override
 	public ServerSocket newServerSocket (Protocol protocol, String hostname, int port, ServerSocketHints hints) {
-		return new SwitchServerSocket(port, hints);
+		throw new GdxRuntimeException("Sockets are not supported");
 	}
 
 	@Override
 	public ServerSocket newServerSocket (Protocol protocol, int port, ServerSocketHints hints) {
-		return new SwitchServerSocket(port, hints);
+		throw new GdxRuntimeException("Sockets are not supported");
 	}
 
 	@Override
 	public Socket newClientSocket (Protocol protocol, String host, int port, SocketHints hints) {
-		return new SwitchSocket(host, port, hints);
+		throw new GdxRuntimeException("Sockets are not supported");
 	}
 
 	@Override
